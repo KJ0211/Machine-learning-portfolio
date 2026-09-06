@@ -1,0 +1,52 @@
+Three projects built to close specific gaps against a Junior ML Engineer job description (Glite — ML-powered English tutoring): understanding of neural networks/transformers and NLP algorithms, complete end-to-end ML experience, and direct experience with the specific problem the role is built around — predicting student knowledge from language-test data.
+
+1. Automated Essay Scoring with a Fine-Tuned Transformer
+
+Problem: predict a human-assigned score for a piece of student writing, using the Kaggle ASAP-AES dataset (essay set 1, scores 2–12, n=1,783).
+
+Method: fine-tuned distilbert-base-uncased as a regression model (Hugging Face Trainer, problem_type="regression"), evaluated with Quadratic Weighted Kappa (QWK) — the same metric the original Kaggle competition used.
+
+Results:
+
+Model	QWK
+Baseline (word count → linear regression)	0.7804
+Fine-tuned DistilBERT	0.8554
+
+Key finding: the word-count-only baseline scoring 0.78 looks suspiciously strong for "the dumbest possible baseline" — and it is: essay length is a well-documented, unusually strong predictor of human-assigned scores specifically in ASAP essay set 1, a property that's been noted and critiqued in the automated-essay-scoring literature. The transformer still meaningfully outperforms it (+0.075 QWK), suggesting it's picking up genuine content signal beyond length alone, not just re-deriving the same shortcut.
+
+Limitations: this dataset is native English-speaking school students (grades 7–10), not the intermediate/advanced ESL learners a product like Glite serves — a real population mismatch worth naming rather than glossing over.
+
+2. CEFR-Level Text Classifier
+
+Problem: classify a piece of English text into a CEFR proficiency level (A1–C2), using the CEFR Levelled English Texts dataset (1,494 texts, fairly balanced across levels: 202–288 examples each).
+
+Method: a TF-IDF + logistic regression baseline, compared against fine-tuned distilbert-base-uncased (6-way classification), evaluated with macro-F1 to account for class imbalance.
+
+Results:
+
+Model	Macro-F1
+Baseline (TF-IDF + logistic regression)	0.585
+Fine-tuned DistilBERT	0.645
+
+Key finding: the confusion matrix shows a genuinely clean pattern — every misclassification lands on an adjacent CEFR level (e.g. B1↔B2, C1↔C2); there is not a single case anywhere of an error jumping two or more levels away. That's strong evidence the model has learned CEFR's real ordinal structure, not just memorized surface features. The specific weak points are B1 and C1 (44% recall each), not a uniform "middle is hardest" — A1, A2, and C2 all hold up much better (72–91% recall).
+
+Limitations: at 1,494 examples this is a small dataset for a 6-way classification task; a proper ordinal-regression framing (rather than plain multi-class classification) would better reflect CEFR's inherent ordering and is a natural next step.
+
+3. Knowledge Tracing on Duolingo Learner Data
+
+Problem: predict whether a language learner will get a specific word wrong in a translation/listening exercise, using their own history of past performance — this is the closest of the three projects to what Glite's job description literally describes ("predicting student knowledge"). Uses the 2018 Duolingo SLAM shared-task dataset (English track, en_es), 2,622,957 labeled tokens.
+
+Method: engineered a leakage-safe historical-accuracy feature per learner (computed only from attempts strictly before the current one — verified by hand against raw rows to confirm no future information leaks in), combined with linguistic/contextual features (part-of-speech tag, exercise format, elapsed days) and trained a HistGradientBoostingClassifier. Gradient boosting over engineered features, rather than a deep sequence model, was a deliberate choice — it's the same class of approach used by several top solutions in the (much larger) Riiid Kaggle knowledge-tracing competition, not a lesser substitute for a neural network.
+
+Results:
+
+Model	AUC	F1 (best threshold)
+Majority-class baseline	—	0.000
+Historical-accuracy-only	0.657	—
+Full model (gradient boosting)	0.732	0.347 (at threshold 0.164, vs. default 0.5)
+
+At the tuned threshold, the model catches 53% of actual errors (recall on the minority "incorrect" class) at 26% precision — the recall number is the practically important one for a product like this, since it measures how much of a learner's genuine struggle actually gets surfaced.
+
+Key finding: F1 at the default 0.5 threshold was a misleadingly low 0.11 despite a healthy AUC of 0.732 — a direct consequence of the ~12.6% positive-class rate, where the model's probabilities rarely cross 0.5 even for genuine errors. Tuning the decision threshold (which landed close to the true base rate) rather than trusting the default is what surfaced the model's real performance — a small methodological point that matters a lot in practice for imbalanced ed-tech data like this.
+
+Limitations: this predicts per-word correctness within an exercise, not "will they get the next question right" in the item-level sense more common in knowledge-tracing literature (Bayesian/Deep Knowledge Tracing) — a related but distinct framing, worth stating explicitly. The data is Spanish-L1 speakers learning English, not necessarily matching Glite's actual learner population. Historical accuracy is computed only within this dataset's session history, not carried across a learner's full lifetime activity. A proper Deep Knowledge Tracing model (an LSTM/transformer over each learner's full sequence) is the natural, more sophisticated next step.
