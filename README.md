@@ -12,7 +12,7 @@ Knowledge Tracing on Duolingo Learner Data Predicted per-word answer correctness
 
 Sensor Data & Human Activity
 
-Machine Learning for Characterising Caring Touch in Haptic and Robotic Systems MSc dissertation (in progress): a reproducible pipeline for pressure-sensor data from a sensorised infant doll, extracting interpretable touch-pattern features (intensity, rhythm, smoothness) across caregiving tasks.
+MSc dissertation exploring pressure patterns during simulated caregiving with a sensorised infant doll. Includes a reproducible Python pipeline for preprocessing, interpretable feature extraction, statistical task comparisons, and machine learning evaluation of caregiving experience using participant separated validation.
 
 Classifying Human Interaction Patterns in Inertial Sensor Data Random Forest classifier on the UCI Human Activity Recognition dataset — 93% test accuracy distinguishing six activities from smartphone accelerometer/gyroscope data.
 
